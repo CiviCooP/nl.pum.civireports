@@ -188,6 +188,8 @@ class CRM_Civireports_Form_Report_FindExpert extends CRM_Report_Form {
     $this->buildACLClause($this->_aliases['civicrm_contact']);
 
     $sql = $this->buildQuery(TRUE);
+    //CRM_Core_Error::debug('sql', $sql);
+    //exit();
 
     $rows = $graphRows = array();
     $this->buildRows($sql, $rows);
@@ -229,6 +231,13 @@ class CRM_Civireports_Form_Report_FindExpert extends CRM_Report_Form {
         break;
       }
     }
+  }
+  function where() {
+    /*
+     * only contact type Expert
+     */
+    $this->_where = 'WHERE contact_civireport.is_deleted = 0 AND contact_civireport.contact_sub_type '
+      . 'LIKE CONCAT ("%'.CRM_Core_DAO::VALUE_SEPARATOR.'Expert'.CRM_Core_DAO::VALUE_SEPARATOR.'%")';
   }
 }
 
