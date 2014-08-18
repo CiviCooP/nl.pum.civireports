@@ -28,14 +28,14 @@ class CRM_Civireports_Form_Report_FindExpert extends CRM_Report_Form {
 
   protected $_customGroupExtends = array('Individual');
 
-  public $_drilldownReport = array('contact/detail' => 'Link to Detail Report');
-
   function __construct() {
     $this->_autoIncludeIndexedFieldsAsOrderBys = FALSE;
+    $this->_customGroupFilters = TRUE;
     $this->_columns = array(
       'civicrm_contact' =>
       array(
         'dao' => 'CRM_Contact_DAO_Contact',
+        'grouping' => 'contact-fields',
         'fields' =>
         array(
           'display_name' =>
@@ -74,6 +74,7 @@ class CRM_Civireports_Form_Report_FindExpert extends CRM_Report_Form {
       'civicrm_email' =>
       array(
         'dao' => 'CRM_Core_DAO_Email',
+        'grouping' => 'contact-fields',
         'fields' =>
         array(
           'email' =>
@@ -98,11 +99,11 @@ class CRM_Civireports_Form_Report_FindExpert extends CRM_Report_Form {
       'civicrm_phone' =>
       array(
         'dao' => 'CRM_Core_DAO_Phone',
+        'grouping' => 'contact-fields',
         'fields' =>
         array(
           'phone' => NULL,   
         ),
-        'grouping' => 'contact-fields',
       ),
     );
 

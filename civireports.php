@@ -106,3 +106,11 @@ function civireports_civicrm_caseTypes(&$caseTypes) {
 function civireports_civicrm_alterSettingsFolders(&$metaDataFolders = NULL) {
   _civireports_civix_civicrm_alterSettingsFolders($metaDataFolders);
 }
+/**
+ * Implementation of hook civicrm_alterContent
+ */
+function civireports_civicrm_alterContent(&$content, $context, $tplName, &$object) {
+  if ($tplName === 'CRM/Civireports/Form/Report/FindExpert.tpl') {
+    $content = str_replace('div class="crm-accordion-wrapper crm-accordion collapsed','div class="crm-accordion-wrapper crm-accordion',$content);
+  }
+}
