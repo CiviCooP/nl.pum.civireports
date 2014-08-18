@@ -108,8 +108,13 @@ function civireports_civicrm_alterSettingsFolders(&$metaDataFolders = NULL) {
 }
 /**
  * Implementation of hook civicrm_alterContent
+ * @author Erik Hommel (CiviCooP) <erik.hommel@civicoop.org>
+ * @date 18 Aug 2014
  */
 function civireports_civicrm_alterContent(&$content, $context, $tplName, &$object) {
+  /*
+   * remove collapsed for custom field sets for report FindExpert
+   */
   if ($tplName === 'CRM/Civireports/Form/Report/FindExpert.tpl') {
     $content = str_replace('div class="crm-accordion-wrapper crm-accordion collapsed','div class="crm-accordion-wrapper crm-accordion',$content);
   }

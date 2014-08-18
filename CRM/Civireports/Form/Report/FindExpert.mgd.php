@@ -11,8 +11,8 @@ return array (
     'params' => 
     array (
       'version' => 3,
-      'label' => 'FindExpert',
-      'description' => 'FindExpert (nl.pum.civireports)',
+      'label' => 'Find Expert',
+      'description' => 'Find Expert report',
       'class_name' => 'CRM_Civireports_Form_Report_FindExpert',
       'report_url' => 'nl.pum.civireports/findexpert',
       'component' => '',
