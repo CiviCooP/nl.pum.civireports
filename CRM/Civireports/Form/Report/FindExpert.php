@@ -198,8 +198,6 @@ class CRM_Civireports_Form_Report_FindExpert extends CRM_Report_Form {
     $this->_whereClauses[] .= '(contact_civireport.contact_sub_type LIKE CONCAT ("%'.
       CRM_Core_DAO::VALUE_SEPARATOR.'Expert'.CRM_Core_DAO::VALUE_SEPARATOR.'%"))';
     $sql = $this->buildQuery(TRUE);
-    //CRM_Core_Error::debug('sql', $sql);
-    //exit();
 
     $rows = $graphRows = array();
     $this->buildRows($sql, $rows);
