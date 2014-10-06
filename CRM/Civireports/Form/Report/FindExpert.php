@@ -34,7 +34,6 @@ class CRM_Civireports_Form_Report_FindExpert extends CRM_Report_Form {
     $this->_autoIncludeIndexedFieldsAsOrderBys = FALSE;
     $this->_customGroupFilters = TRUE;
     $this->setExpertRelationshipTypeId('Expert');
-    $genderOptions = $this->getGenderOptions();
     $this->_columns = array(
       'civicrm_contact' =>
       array(
@@ -66,13 +65,6 @@ class CRM_Civireports_Form_Report_FindExpert extends CRM_Report_Form {
         array(
           'sort_name' =>
           array('title' => ts('Contact Name')),
-          'gender_id' =>
-          array(
-            'title' => ts('Gender'), 
-            'type' => CRM_Utils_Type::T_INT, 
-            'operatorType' => CRM_Report_Form::OP_SELECT,
-            'options' => $genderOptions
-          ),
         ),
       ),
       'civicrm_email' =>
@@ -230,23 +222,6 @@ class CRM_Civireports_Form_Report_FindExpert extends CRM_Report_Form {
         break;
       }
     }
-  }
-  /**
-   * Function to retrieve gender options
-   */
-  function getGenderOptions() {
-    $genderOptions = array();
-    try {
-      $apiGenderOptions = civicrm_api3('OptionValue', 'Get', array('option_group_id' => 3));
-      foreach($apiGenderOptions['values'] as $genderOption) {
-        $genderOptions[$genderOption['value']] = $genderOption['label'];
-      }
-    } catch (CiviCRM_API3_Exception $ex) {
-      return $genderOptions;
-    }
-    $genderOptions[0] = '- select -';
-    asort($genderOptions);
-    return $genderOptions;
   }
   /**
    * Local function whereClause to make sure no where clause is ended
