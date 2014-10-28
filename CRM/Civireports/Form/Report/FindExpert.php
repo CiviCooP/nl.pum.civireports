@@ -491,5 +491,36 @@ class CRM_Civireports_Form_Report_FindExpert extends CRM_Report_Form {
     }
     return;
   }
+  /**
+   * Function to build sector filter
+   */
+  function buildTagFilter() {
+    $contactTags = CRM_Core_BAO_Tag::getTags();
+    if (class_exists('CRM_Threepeas_Config')) {
+      $threepeasConfig = CRM_Threepeas_Config::singleton();
+      $sectorTree = $threepeasConfig->getSectorTree();
+      foreach ($contactTags as $contactTagId => $contactTag) {
+        if (!in_array($contactTagId, $sectorTree) || $contactTag == 'Sector') {
+          unset($contactTags[$contactTagId]);
+        }
+      }
+    }
+    if (!empty($contactTags)) {
+      $this->_columns['civicrm_tag'] = array(
+        'dao' => 'CRM_Core_DAO_Tag',
+        'filters' =>
+        array(
+          'tagid' =>
+          array(
+            'name' => 'tag_id',
+            'title' => ts('Sector'),
+            'tag' => TRUE,
+            'operatorType' => CRM_Report_Form::OP_MULTISELECT,
+            'options' => $contactTags,
+          ),
+        ),
+      );
+    }
+  }
 }
 
