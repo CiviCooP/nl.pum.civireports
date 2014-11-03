@@ -139,7 +139,6 @@ class CRM_Civireports_Form_Report_FindExpert extends CRM_Report_Form {
         }
       }
     }
-
     $this->_select = "SELECT " . implode(', ', $select) . " ";
   }
 
@@ -416,9 +415,6 @@ class CRM_Civireports_Form_Report_FindExpert extends CRM_Report_Form {
     }
   }
   /**
-   * Function to check if we already have row for expert and if so, add language
-   */
-  /**
    * local function modifyColumnHeaders to add latest main activity header
    */
   function modifyColumnHeaders() {
@@ -522,5 +518,253 @@ class CRM_Civireports_Form_Report_FindExpert extends CRM_Report_Form {
       );
     }
   }
-}
+  function customDataFrom() {
+    if (empty($this->_customGroupExtends)) {
+      return;
+    }
+    $mapper = CRM_Core_BAO_CustomQuery::$extendsMap;
+    
 
+    foreach ($this->_columns as $table => $prop) {
+      if (substr($table, 0, 13) == 'civicrm_value' || substr($table, 0, 12) == 'custom_value') {
+        $extendsTable = $mapper[$prop['extends']];
+
+        // check field is in params
+        if (!$this->isFieldSelected($prop)) {
+          continue;
+        }
+        $baseJoin = CRM_Utils_Array::value($prop['extends'], $this->_customGroupExtendsJoin, "{$this->_aliases[$extendsTable]}.id");
+
+        $customJoin   = is_array($this->_customGroupJoin) ? $this->_customGroupJoin[$table] : $this->_customGroupJoin;
+        $this->_from .= "
+{$customJoin} {$table} {$this->_aliases[$table]} ON {$this->_aliases[$table]}.entity_id = {$baseJoin}";
+        // handle for ContactReference
+        if (array_key_exists('fields', $prop)) {
+          foreach ($prop['fields'] as $fieldName => $field) {
+            if (CRM_Utils_Array::value('dataType', $field) == 'ContactReference') {
+              $columnName = CRM_Core_DAO::getFieldValue('CRM_Core_DAO_CustomField', CRM_Core_BAO_CustomField::getKeyID($fieldName), 'column_name');
+              $this->_from .= "
+LEFT JOIN civicrm_contact {$field['alias']} ON {$field['alias']}.id = {$this->_aliases[$table]}.{$columnName} ";
+            }
+          }
+        }
+      }
+    }
+  }
+  /**
+   * Function to add custom data 
+   */
+  function addCustomDataToColumns($addFields = TRUE, $permCustomGroupIds = array()) {
+    $civireportsConfig = CRM_Civireports_Config::singleton();
+    $nationalityCustomGroup = $civireportsConfig->getNationalityCustomGroup();
+    if (empty($this->_customGroupExtends)) {
+      return;
+    }
+    if (!is_array($this->_customGroupExtends)) {
+      $this->_customGroupExtends = array($this->_customGroupExtends);
+    }
+    $customGroupWhere = '';
+    if (!empty($permCustomGroupIds)) {
+      $customGroupWhere = "cg.id IN (".implode(',' , $permCustomGroupIds).") AND";
+    }
+    $sql = "
+SELECT cg.table_name, cg.title, cg.extends, cf.id as cf_id, cf.label,
+       cf.column_name, cf.data_type, cf.html_type, cf.option_group_id, cf.time_format
+FROM   civicrm_custom_group cg
+INNER  JOIN civicrm_custom_field cf ON cg.id = cf.custom_group_id
+WHERE cg.extends IN ('" . implode("','", $this->_customGroupExtends) . "') AND
+      {$customGroupWhere}
+      cg.is_active = 1 AND
+      cf.is_active = 1 AND
+      cf.is_searchable = 1
+ORDER BY cg.weight, cf.weight";
+    $customDAO = CRM_Core_DAO::executeQuery($sql);
+
+    $curTable = NULL;
+    while ($customDAO->fetch()) {
+      /*
+       * PUM issue 658 remove custom group nationality
+       */
+      if ($customDAO->table_name != $nationalityCustomGroup['table_name']) {
+        
+        if ($customDAO->table_name != $curTable) {
+          $curTable = $customDAO->table_name;
+          $curFields = $curFilters = array();
+
+          // dummy dao object
+          $this->_columns[$curTable]['dao'] = 'CRM_Contact_DAO_Contact';
+          $this->_columns[$curTable]['extends'] = $customDAO->extends;
+          $this->_columns[$curTable]['grouping'] = $customDAO->table_name;
+          $this->_columns[$curTable]['group_title'] = $customDAO->title;
+          
+          foreach (array(
+              'fields', 'filters', 'group_bys') as $colKey) {
+            if (!array_key_exists($colKey, $this->_columns[$curTable])) {
+              $this->_columns[$curTable][$colKey] = array();
+            }
+          }
+        }
+        $languageCustomGroup = $civireportsConfig->getLanguageCustomGroup();
+        $levelCustomField = $civireportsConfig->getLanguageLevelCustomField();
+        $expertDataCustomGroup = $civireportsConfig->getExpertDataCustomGroup();
+        $expertEndDataCustomField = $civireportsConfig->getExpertEndDateCustomField();
+        $expertStartDateCustomField = $civireportsConfig->getExpertStartDateCustomField();
+        
+        /*
+         * PUM issue 658 remove custom fields for language level and expert data
+         * start and end_date
+         */
+        switch ($customDAO->table_name) {
+          case $languageCustomGroup['table_name']:
+            if ($customDAO->column_name == $levelCustomField['column_name']) {
+              $skipField = TRUE;
+            } else {
+              $skipField = FALSE;
+            }
+            break;
+          case $expertDataCustomGroup['table_name']:
+            if ($customDAO->column_name == $expertStartDateCustomField['column_name'] ||
+              $customDAO->column_name == $expertEndDataCustomField['column_name']) {
+              $skipField = TRUE;
+            } else {
+              $skipField = FALSE;
+            }
+            break;
+          default:
+            $skipField = FALSE;
+            break;
+        }
+        
+        if (!$skipField) {
+          $fieldName = 'custom_' . $customDAO->cf_id;
+
+          if ($addFields) {
+            // this makes aliasing work in favor
+            $curFields[$fieldName] = array(
+              'name' => $customDAO->column_name,
+              'title' => $customDAO->label,
+              'dataType' => $customDAO->data_type,
+              'htmlType' => $customDAO->html_type,
+            );
+          }
+          if ($this->_customGroupFilters) {
+            // this makes aliasing work in favor
+            $curFilters[$fieldName] = array(
+              'name' => $customDAO->column_name,
+              'title' => $customDAO->label,
+              'dataType' => $customDAO->data_type,
+              'htmlType' => $customDAO->html_type,
+            );
+          }
+
+          switch ($customDAO->data_type) {
+            case 'Date':
+              // filters
+              $curFilters[$fieldName]['operatorType'] = CRM_Report_Form::OP_DATE;
+              $curFilters[$fieldName]['type'] = CRM_Utils_Type::T_DATE;
+              // CRM-6946, show time part for datetime date fields
+              if ($customDAO->time_format) {
+                $curFields[$fieldName]['type'] = CRM_Utils_Type::T_TIMESTAMP;
+              }
+              break;
+
+            case 'Boolean':
+              $curFilters[$fieldName]['operatorType'] = CRM_Report_Form::OP_SELECT;
+              $curFilters[$fieldName]['options'] = array('' => ts('- select -'),
+                                                   1 => ts('Yes'),
+                                                   0 => ts('No'),
+              );
+              $curFilters[$fieldName]['type'] = CRM_Utils_Type::T_INT;
+              break;
+
+            case 'Int':
+              $curFilters[$fieldName]['operatorType'] = CRM_Report_Form::OP_INT;
+              $curFilters[$fieldName]['type'] = CRM_Utils_Type::T_INT;
+              break;
+
+            case 'Money':
+              $curFilters[$fieldName]['operatorType'] = CRM_Report_Form::OP_FLOAT;
+              $curFilters[$fieldName]['type'] = CRM_Utils_Type::T_MONEY;
+              break;
+
+            case 'Float':
+              $curFilters[$fieldName]['operatorType'] = CRM_Report_Form::OP_FLOAT;
+              $curFilters[$fieldName]['type'] = CRM_Utils_Type::T_FLOAT;
+              break;
+
+            case 'String':
+              $curFilters[$fieldName]['type'] = CRM_Utils_Type::T_STRING;
+
+              if (!empty($customDAO->option_group_id)) {
+                if (in_array($customDAO->html_type, array(
+                      'Multi-Select', 'AdvMulti-Select', 'CheckBox'))) {
+                  $curFilters[$fieldName]['operatorType'] = CRM_Report_Form::OP_MULTISELECT_SEPARATOR;
+                }
+                else {
+                  $curFilters[$fieldName]['operatorType'] = CRM_Report_Form::OP_MULTISELECT;
+                }
+                if ($this->_customGroupFilters) {
+                  $curFilters[$fieldName]['options'] = array();
+                  $ogDAO = CRM_Core_DAO::executeQuery("SELECT ov.value, ov.label FROM civicrm_option_value ov WHERE ov.option_group_id = %1 ORDER BY ov.weight", array(1 => array($customDAO->option_group_id, 'Integer')));
+                  while ($ogDAO->fetch()) {
+                    $curFilters[$fieldName]['options'][$ogDAO->value] = $ogDAO->label;
+                  }
+                }
+              }
+              break;
+
+            case 'StateProvince':
+              if (in_array($customDAO->html_type, array(
+                    'Multi-Select State/Province'))) {
+                $curFilters[$fieldName]['operatorType'] = CRM_Report_Form::OP_MULTISELECT_SEPARATOR;
+              }
+              else {
+                $curFilters[$fieldName]['operatorType'] = CRM_Report_Form::OP_MULTISELECT;
+              }
+              $curFilters[$fieldName]['options'] = CRM_Core_PseudoConstant::stateProvince();
+              break;
+
+            case 'Country':
+              if (in_array($customDAO->html_type, array(
+                    'Multi-Select Country'))) {
+                $curFilters[$fieldName]['operatorType'] = CRM_Report_Form::OP_MULTISELECT_SEPARATOR;
+              }
+              else {
+                $curFilters[$fieldName]['operatorType'] = CRM_Report_Form::OP_MULTISELECT;
+              }
+              $curFilters[$fieldName]['options'] = CRM_Core_PseudoConstant::country();
+              break;
+
+            case 'ContactReference':
+              $curFilters[$fieldName]['type'] = CRM_Utils_Type::T_STRING;
+              $curFilters[$fieldName]['name'] = 'display_name';
+              $curFilters[$fieldName]['alias'] = "contact_{$fieldName}_civireport";
+
+              $curFields[$fieldName]['type'] = CRM_Utils_Type::T_STRING;
+              $curFields[$fieldName]['name'] = 'display_name';
+              $curFields[$fieldName]['alias'] = "contact_{$fieldName}_civireport";
+              break;
+
+            default:
+              $curFields[$fieldName]['type'] = CRM_Utils_Type::T_STRING;
+              $curFilters[$fieldName]['type'] = CRM_Utils_Type::T_STRING;
+          }
+
+          if (!array_key_exists('type', $curFields[$fieldName])) {
+            $curFields[$fieldName]['type'] = CRM_Utils_Array::value('type', $curFilters[$fieldName], array());
+          }
+
+          if ($addFields) {
+            $this->_columns[$curTable]['fields'] = array_merge($this->_columns[$curTable]['fields'], $curFields);
+          }
+          if ($this->_customGroupFilters) {
+            $this->_columns[$curTable]['filters'] = array_merge($this->_columns[$curTable]['filters'], $curFilters);
+          }
+          if ($this->_customGroupGroupBy) {
+            $this->_columns[$curTable]['group_bys'] = array_merge($this->_columns[$curTable]['group_bys'], $curFields);
+          }
+        }
+      }
+    }
+  } 
+}
