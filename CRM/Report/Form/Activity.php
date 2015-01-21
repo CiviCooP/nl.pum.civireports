@@ -704,9 +704,11 @@ GROUP BY civicrm_activity_id {$this->_having} {$this->_orderBy} {$this->_limit}"
           'cid' => $cid,
           'cxt' => $context,
         );
-        $actUrl = CRM_Utils_System::url($actActionLinks[CRM_Core_Action::VIEW]['url'],
-          CRM_Core_Action::replace($actActionLinks[CRM_Core_Action::VIEW]['qs'], $actLinkValues), TRUE
-        );
+        if (isset($actActionLinks[CRM_Core_Action::VIEW])) {
+          $actUrl = CRM_Utils_System::url($actActionLinks[CRM_Core_Action::VIEW]['url'],
+            CRM_Core_Action::replace($actActionLinks[CRM_Core_Action::VIEW]['qs'], $actLinkValues), TRUE
+          );
+        }
       }
 
       if (array_key_exists('civicrm_contact_contact_source', $row)) {
@@ -766,7 +768,7 @@ GROUP BY civicrm_activity_id {$this->_having} {$this->_orderBy} {$this->_limit}"
       }
 
       if (array_key_exists('civicrm_activity_activity_type_id', $row)) {
-        if ($value = $row['civicrm_activity_activity_type_id']) {
+        if (($value = $row['civicrm_activity_activity_type_id']) && isset($activityType[$value])) {
           $rows[$rowNum]['civicrm_activity_activity_type_id'] = $activityType[$value];
           if ($viewLinks) {
             $rows[$rowNum]['civicrm_activity_activity_type_id_link'] = $actUrl;
