@@ -209,8 +209,8 @@ class CRM_Civireports_Form_Report_FindExpert extends CRM_Report_Form {
         $entryFound = TRUE;
       }
       if (array_key_exists('civicrm_contact_display_name', $row) && array_key_exists('civicrm_contact_id', $row)) {
-        $contactUrl = CRM_Utils_system::url('civicrm/contact/view',
-          'reset=1&cid=' . $row['civicrm_contact_id'], $this->_absoluteUrl);
+        $contactUrl = CRM_Utils_System::url('civicrm/contact/view',
+          'reset=1&cid=' . $row['civicrm_contact_id'], $this->_absoluteUrl).'"target=_blank"';
         $rows[$rowNum]['civicrm_contact_display_name_link'] = $contactUrl;
         $rows[$rowNum]['civicrm_contact_display_name_hover'] = ts("Click to view contact");
         $entryFound = TRUE;
