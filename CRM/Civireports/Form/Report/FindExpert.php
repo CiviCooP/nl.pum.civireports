@@ -411,7 +411,12 @@ class CRM_Civireports_Form_Report_FindExpert extends CRM_Report_Form {
         $row['client_id'] = $latestMainActivity['client_id'];
         $row['latest_main'] = $latestMainActivity['label'];
       }
-      $rows[] = $row;
+      /*
+       * only add if no row for expert yet
+       */
+      if ($this->rowExists($row['civicrm_contact_id'], $rows) == FALSE) {
+        $rows[] = $row;
+      }
     }
   }
   /**
@@ -766,5 +771,23 @@ ORDER BY cg.weight, cf.weight";
         }
       }
     }
-  } 
+  }
+
+  /**
+   * Method to check if the expert is already in the results report rows
+   *
+   * @param int $contactId
+   * @param array $rows
+   * @return bool
+   * @access protected
+   */
+  protected function rowExists($contactId, $rows) {
+    $rowExists = FALSE;
+    foreach ($rows as $row) {
+      if (in_array($contactId, $row)) {
+        $rowExists = TRUE;
+      }
+    }
+    return $rowExists;
+  }
 }
