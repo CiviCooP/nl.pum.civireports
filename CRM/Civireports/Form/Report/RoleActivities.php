@@ -494,7 +494,10 @@ class CRM_Civireports_Form_Report_RoleActivities extends CRM_Report_Form {
         }
       }
     }
-    $clauses[] = $this->addDrupalRoleWhereClause();
+    $clause = $this->addDrupalRoleWhereClause();
+    if (!empty($clause)) {
+      $clauses[] = $clause;
+    }
 
     if (empty($clauses)) {
       $this->_where .= " ";
@@ -823,10 +826,11 @@ GROUP BY civicrm_activity_id {$this->_having} {$this->_orderBy} {$this->_limit}"
 
   private function getAllDrupalRoles() {
     foreach (user_roles($membersonly = TRUE) as $roleId=>$roleName) {
-      if ($roleName != 'authenticated_user' && $roleName != 'administrator') {
+      if ($roleName != 'authenticated user' && $roleName != 'administrator') {
         $this->roleList[$roleId] = $roleName;
       }
     }
+    asort($this->roleList);
   }
 
   /**
@@ -836,6 +840,7 @@ GROUP BY civicrm_activity_id {$this->_having} {$this->_orderBy} {$this->_limit}"
    * @access protected
    */
   private function addDrupalRoleWhereClause() {
+    $clause = '';
     if (isset($this->_filters['civicrm_contact']['user_role'])) {
       $this->_filters['civicrm_contact']['user_role']['dbAlias'] = $this->_columns['civicrm_activity_contact']['alias'] . '.contact_id';
 
@@ -845,9 +850,8 @@ GROUP BY civicrm_activity_id {$this->_having} {$this->_orderBy} {$this->_limit}"
         foreach ($this->_params['user_role_value'] as $userRoleId) {
           $this->getUsersForRole($userRoleId, $contactIds);
         }
-
         $clause = $this->whereClause($this->_filters['civicrm_contact']['user_role'], $this->_params['user_role_op'],
-          $this->_params['user_role_value'], 0, 0);
+          $contactIds, 0, 0);
       }
     }
     return $clause;
@@ -868,9 +872,17 @@ GROUP BY civicrm_activity_id {$this->_having} {$this->_orderBy} {$this->_limit}"
         ->execute()
         ->fetchCol();
       foreach ($fetchedUsers as $fetchedUser) {
-        if (!in_array($fetchedUser, $contactIds)) {
-          $contactIds[] = $fetchedUser;
+        $ufParams = array(
+          'uf_id' => $fetchedUser,
+          'return' => 'contact_id');
+        try {
+          $foundContactId = civicrm_api3('UFMatch', 'Getvalue', $ufParams);
+          if (!in_array($foundContactId, $contactIds)) {
+            $contactIds[] = $foundContactId;
+          }
+        } catch (CiviCRM_API3_Exception $ex) {
         }
       }
     }
-  }}
+  }
+}
