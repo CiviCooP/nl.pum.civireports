@@ -58,7 +58,7 @@ class CRM_Civireports_Form_Report_RoleActivities extends CRM_Report_Form {
       asort($this->activeCampaigns);
       $this->engagementLevels = CRM_Campaign_PseudoConstant::engagementLevel();
     }
-    $this->activityTypes = CRM_Core_PseudoConstant::activityType(TRUE, FALSE, FALSE, 'label', TRUE);
+    $this->activityTypes = CRM_Core_PseudoConstant::activityType(TRUE, TRUE, FALSE, 'label', TRUE);
     asort($this->activityTypes);
     $this->getAllDrupalRoles();
 
