@@ -412,6 +412,23 @@ class CRM_Civireports_Form_Report_FindExpert extends CRM_Report_Form {
         $row['latest_main'] = $latestMainActivity['label'];
       }
       /*
+       * add main activities count and restrictions
+       */
+      $row['count_main'] = '';
+      if (method_exists('CRM_Threepeas_BAO_PumCaseRelation', 'getExpertNumberOfCases')) {
+        $countMain = CRM_Threepeas_BAO_PumCaseRelation::getExpertNumberOfCases($row['civicrm_contact_id']);
+        if ($countMain > 0) {
+          $row['count_main'] = $countMain;
+        }
+      }
+      $row['restrictions'] = ts('No');
+      if (method_exists('CRM_Threepeas_BAO_PumCaseRelation', 'restrictionsForExpert')) {
+        $hasRestrictions = CRM_Threepeas_BAO_PumCaseRelation::restrictionsForExpert($row['civicrm_contact_id']);
+        if ($hasRestrictions == TRUE) {
+          $row['restrictions'] = ts('Yes');
+        }
+      }
+      /*
        * only add if no row for expert yet
        */
       if ($this->rowExists($row['civicrm_contact_id'], $rows) == FALSE) {
@@ -424,6 +441,8 @@ class CRM_Civireports_Form_Report_FindExpert extends CRM_Report_Form {
    */
   function modifyColumnHeaders() {
     $this->_columnHeaders['latest_main'] = array('type' => 2, 'title' => 'Latest Main Act.');
+    $this->_columnHeaders['count_main'] = array('type' => 2, 'title' => 'No. of Main Act.');
+    $this->_columnHeaders['restrictions'] = array('type' => 2, 'title' => 'Has restrictions?');
   }
 
   /**
@@ -435,8 +454,7 @@ class CRM_Civireports_Form_Report_FindExpert extends CRM_Report_Form {
     $latestMainActivity = array();
     $caseId = 0;
     if (!empty($this->_expertRelationshipTypeId)) {
-      $caseIds = array();
-      $params = array('relationship_type_id' => $this->_expertRelationshipTypeId, 
+      $params = array('relationship_type_id' => $this->_expertRelationshipTypeId,
         'contact_id_b' => $contactId, 'options' => array('sort' => 'start_date DESC'));
       $relationships = civicrm_api3('Relationship', 'Get', $params);
       foreach($relationships['values'] as $relationship) {
