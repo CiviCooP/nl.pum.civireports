@@ -119,3 +119,74 @@ function civireports_civicrm_alterContent(&$content, $context, $tplName, &$objec
     $content = str_replace('div class="crm-accordion-wrapper crm-accordion collapsed','div class="crm-accordion-wrapper crm-accordion',$content);
   }
 }
+
+/**
+ * Implementation of hook civicrm_export
+ * Specific for issue 3023 - always add name/id of representative and name/id of sponsor if case export
+ *
+ * @param $exportTempTable
+ * @param $headerRows
+ * @param $sqlColumns
+ * @param $exportMode
+ */
+function civireports_civicrm_export( $exportTempTable, &$headerRows, &$sqlColumns, $exportMode ) {
+  if ($exportMode == 6) {
+    // only if case_id is included in the export
+    if (isset($sqlColumns['case_id'])) {
+
+      $addColumns = array();
+      $addColumns[] = "ADD COLUMN representative_id INT(11)";
+      $addColumns[] = "ADD COLUMN representative_name VARCHAR(128)";
+      $addColumns[] = "ADD COLUMN fa_donor_id INT(11)";
+      $addColumns[] = "ADD COLUMN fa_donor_name VARCHAR(128)";
+      $sql = "ALTER TABLE " . $exportTempTable . " " . implode(", ", $addColumns);
+      CRM_Core_DAO::singleValueQuery($sql);
+
+      $headerRows[] = "Representative ID";
+      $headerRows[] = "Representative Name";
+      $headerRows[] = "Sponsor ID";
+      $headerRows[] = "Sponsor Name";
+
+      $sqlColumns['representative_id'] = 'representative_id INT(11)';
+      $sqlColumns['representative_name'] = 'representative_name VARCHAR(128)';
+      $sqlColumns['fa_donor_id'] = 'fa_donor_id INT(11)';
+      $sqlColumns['fa_donor_name'] = 'fa_donor_name VARCHAR(128)';
+
+      // update temp table
+      $dao = CRM_Core_DAO::executeQuery("SELECT * FROM ".$exportTempTable);
+      while ($dao->fetch()) {
+        $count = 1;
+        $updateFields = array();
+        $updateParams = array();
+
+        if (method_exists("CRM_Threepeas_BAO_PumCaseRelation", "getCaseRepresentative")) {
+          $representativeId = CRM_Threepeas_BAO_PumCaseRelation::getCaseRepresentative($dao->case_id);
+          if ($representativeId) {
+            $updateFields[] = "representative_id = %".$count;
+            $updateParams[$count] = array($representativeId, "Integer");
+            $count++;
+            $updateFields[] = "representative_name = %".$count;
+            $updateParams[$count] = array(CRM_Threepeas_Utils::getContactName($representativeId), "String");
+            $count++;
+          }
+        }
+        if (method_exists("CRM_Threepeas_BAO_PumDonorLink", "getCaseFADonor")) {
+          $faDonorId = CRM_Threepeas_BAO_PumDonorLink::getCaseFADonor($dao->case_id);
+          if ($faDonorId) {
+            $updateFields[] = "fa_donor_id = %".$count;
+            $updateParams[$count] = array($faDonorId, "Integer");
+            $count++;
+            $updateFields[] = "fa_donor_name = %".$count;
+            $updateParams[$count] = array(CRM_Threepeas_Utils::getContactName($faDonorId), "String");
+            $count++;
+          }
+        }
+        if (!empty($updateFields)) {
+          $update = "UPDATE ".$exportTempTable." SET ".implode(", ", $updateFields)." WHERE case_id = %".$count;
+          $updateParams[$count] = array($dao->case_id, "Integer");
+          CRM_Core_DAO::executeQuery($update, $updateParams);
+        }
+      }
+    }
+  }
+}
