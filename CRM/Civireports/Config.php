@@ -16,7 +16,8 @@ class CRM_Civireports_Config {
   protected $expert_data_custom_group = null;
   protected $expert_start_date_custom_field = null;
   protected $expert_end_date_custom_field = null;
-  
+
+
   protected function __construct() {
     $this->expert_data_custom_group = $this->getCustomGroup('expert_data');
     $this->language_custom_group = $this->getCustomGroup('Languages');
