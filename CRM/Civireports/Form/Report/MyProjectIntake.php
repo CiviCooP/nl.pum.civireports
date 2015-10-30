@@ -36,11 +36,7 @@ class CRM_Civireports_Form_Report_MyProjectIntake extends CRM_Report_Form {
   function __construct() {
     $this->_exposeContactID = FALSE;
     $this->caseStatus = CRM_Case_PseudoConstant::caseStatus();
-    $this->caseStatus[0] = "- any ";
-    asort($this->caseStatus);
     $this->country = CRM_Case_PseudoConstant::country();
-    $this->country[0] = "- any -";
-    asort($this->country);
     $this->setUserSelect();
     $this->setApproveColumns();
     $this->setRelationshipTypes();
@@ -132,7 +128,7 @@ class CRM_Civireports_Form_Report_MyProjectIntake extends CRM_Report_Form {
             'operatorType' => CRM_Report_Form::OP_MULTISELECT,
             'options' => $this->caseStatus,
           ),
-          'open_case_date' => array(
+          'date_submission' => array(
             'title' => ts('Date Submission'),
             'operatorType' => CRM_Report_Form::OP_DATE,
             'type' => CRM_Utils_Type::T_DATE,
@@ -141,7 +137,7 @@ class CRM_Civireports_Form_Report_MyProjectIntake extends CRM_Report_Form {
         'order_bys' => array(
           'open_case_date' => array(
             'title' => 'Date Submission',
-          ),
+         ),
         ),
       ),
     );
@@ -281,7 +277,7 @@ class CRM_Civireports_Form_Report_MyProjectIntake extends CRM_Report_Form {
     $this->_where .= $this->setCountryClause();
     $this->_where .= $this->setCaseStatusClause();
     $this->_where .= $this->setUserClause();
-
+    $this->_where .= $this->setDateSubmissionClause();
   }
 
   /**
@@ -343,21 +339,45 @@ class CRM_Civireports_Form_Report_MyProjectIntake extends CRM_Report_Form {
     }
   }
 
+  /**
+   * Method to set date submission clauses
+   *
+   * @return string
+   * @access private
+   */
+  private function setDateSubmissionClause() {
+    $dateSubmissionClauses = array();
+    $relative = $this->_params['date_submission_relative'];
+    $from = $this->_params['date_submission_from'];
+    $to = $this->_params['date_submission_to'];
+    if (in_array($relative, array_keys($this->getOperationPair(CRM_Report_Form::OP_DATE)))) {
+      $sqlOP = $this->getSQLOperator($relative);
+    }
+    list($from, $to) = $this->getFromTo($relative, $from, $to, NULL, NULL);
+    $from = substr($from, 0, 8);
+    $dateSubmissionClauses[] = "(piopen.activity_date_time >= $from)";
+    $to = substr($to, 0, 8);
+    $dateSubmissionClauses[] = "(piopen.activity_date_time <= $to)";
+    return " AND ".implode(" AND ", $dateSubmissionClauses);
+  }
+
   function modifyColumnHeaders() {
     $this->_columnHeaders['customer_display_name'] = array('title' => ts("Client"), 'type' => CRM_Utils_Type::T_STRING);
     $this->_columnHeaders['country_name'] = array('title' => ts("Country"), 'type' => CRM_Utils_Type::T_STRING);
-    $this->_columnHeaders['case_subject'] = array('title' => ts("Projectintake"), 'type' => CRM_Utils_Type::T_STRING);
-    $this->_columnHeaders['case_status'] = array('title' => ts("Intake status"), 'type' => CRM_Utils_Type::T_STRING);
+    $this->_columnHeaders['case_subject'] = array('title' => ts("Case Subject"), 'type' => CRM_Utils_Type::T_STRING);
+    if (isset($this->_params['fields']['case_status_id']) && $this->_params['fields']['case_status_id'] == 1) {
+      $this->_columnHeaders['case_status'] = array('title' => ts("Case status"), 'type' => CRM_Utils_Type::T_STRING);
+    }
     $this->_columnHeaders['date_submission'] = array('title' => ts("Date Submission"), 'type' => CRM_Utils_Type::T_DATE);
     $this->_columnHeaders['rep_name'] = array('title' => ts("Representative"), 'type' => CRM_Utils_Type::T_STRING);
     $this->_columnHeaders['ass_date'] = array('title' => ts("Date Assessment Rep"), 'type' => CRM_Utils_Type::T_DATE);
     $this->_columnHeaders['approve_rep'] = array('title' => ts("Customer Approve Rep"), 'type' => CRM_Utils_Type::T_STRING);
-    $this->_columnHeaders['incc_date'] = array('title' => ts("Date Assessment CC"), 'type' => CRM_Utils_Type::T_DATE);
-    $this->_columnHeaders['approve_cc'] = array('title' => ts("Customer Approve CC"), 'type' => CRM_Utils_Type::T_STRING);
-    $this->_columnHeaders['insc_date'] = array('title' => ts("Date Assessment SC"), 'type' => CRM_Utils_Type::T_DATE);
-    $this->_columnHeaders['approve_sc'] = array('title' => ts("Customer Approve SC"), 'type' => CRM_Utils_Type::T_STRING);
-    $this->_columnHeaders['inanamon_date'] = array('title' => ts("Date Assessment Anamon"), 'type' => CRM_Utils_Type::T_DATE);
-    $this->_columnHeaders['approve_anamon'] = array('title' => ts("Customer Approve Anamon"), 'type' => CRM_Utils_Type::T_STRING);
+    $this->_columnHeaders['incc_date'] = array('title' => ts("Date Intake CC"), 'type' => CRM_Utils_Type::T_DATE);
+    $this->_columnHeaders['approve_cc'] = array('title' => ts("Customer Approve by CC"), 'type' => CRM_Utils_Type::T_STRING);
+    $this->_columnHeaders['insc_date'] = array('title' => ts("Date Intake SC"), 'type' => CRM_Utils_Type::T_DATE);
+    $this->_columnHeaders['approve_sc'] = array('title' => ts("Customer Approve by SC"), 'type' => CRM_Utils_Type::T_STRING);
+    $this->_columnHeaders['inanamon_date'] = array('title' => ts("Date Intake Anamon"), 'type' => CRM_Utils_Type::T_DATE);
+    $this->_columnHeaders['approve_anamon'] = array('title' => ts("Customer Approve by Anamon"), 'type' => CRM_Utils_Type::T_STRING);
     $this->_columnHeaders['manage_case'] = array('title' => '','type' => CRM_Utils_Type::T_STRING);
   }
 

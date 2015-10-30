@@ -98,14 +98,14 @@
            {eval var=$sectionHeaderTemplate}
             <tr  class="{cycle values="odd-row,even-row"} {$row.class} crm-report" id="crm-report_{$rowid}">
                 <td>
-                        <span id="projectintake_anamonreport{$row.case_id}_show">
+                        <span id="my-projectintake-report-{$row.case_id}_show">
                             <a href="#" onclick="
-                                    projectintake_anamonreportCaseDetails('{$row.case_id}','{$row.customer_id}');
+                                    myProjectIntakeReportCaseDetails('{$row.case_id}','{$row.customer_id}');
                                     showCaseActivities('{$row.case_id}');
                                     return false;"
                                     ><img src="{$config->resourceBase}i/TreePlus.gif" class="action-icon" alt="{ts}open section{/ts}"/></a>
                         </span>
-                        <span id="minusprojectintake_anamonreport{$row.case_id}_hide" style="display: none;">
+                        <span id="minus-my-projectintake-report-{$row.case_id}_hide" style="display: none;">
                             <a href="#" onclick="hideCaseActivities('{$row.case_id}'); return false;">
                                 <img src="{$config->resourceBase}i/TreeMinus.gif" class="action-icon" alt="{ts}open section{/ts}"/>
                             </a>
@@ -148,10 +148,10 @@
                 {/foreach}
             </tr>
             </tr>
-            <tr id="projectintake_anamonreport_{$row.case_id}_hide" class="crm-case_{$row.case_id} crm-report" style="display: none;">
+            <tr id="my-projectintake-report-{$row.case_id}_hide" class="crm-case_{$row.case_id} crm-report" style="display: none;">
                 <td></td>
                 <td colspan="{$columnCount}" width="99%" class="enclosingNested crm-case_{$row.case_id}">
-                    <div id="projectintake_anamon-report-casedetails-{$row.case_id}"></div>
+                    <div id="my-projectintake-report-casedetails-{$row.case_id}"></div>
                 </td>
             </tr>
         {/foreach}
@@ -190,15 +190,15 @@
 {* Build case details*}
 {literal}
 <script type="text/javascript">
-    function projectintake_anamonreportCaseDetails( caseId, contactId)
+    function myProjectIntakeReportCaseDetails( caseId, contactId)
     {
-        var dataUrl = "{/literal}{crmURL p='civicrm/case/details' h=0 q='snippet=4&caseId='}{literal}" + caseId +'&cid=' + contactId+'&type=report';
+        var dataUrl = "{/literal}{crmURL p='civicrm/case/details' h=0 q='snippet=4&caseId='}{literal}" + caseId +'&cid=' + contactId+'&type=report&context=dashboard';
         cj.ajax({
             url     : dataUrl,
             dataType: "html",
             timeout : 5000, //Time in milliseconds
             success : function( data ){
-                cj( '#projectintake_anamon-report-casedetails-'+caseId ).html( data );
+                cj( '#my-projectintake-report-casedetails-'+caseId ).html( data );
             },
             error   : function( XMLHttpRequest, textStatus, errorThrown ) {
                 console.error( 'Error: '+ textStatus );
@@ -207,17 +207,17 @@
     }
 
     function showCaseActivities( caseId) {
-        cj('#projectintake_anamon-report-casedetails-'+ caseId).show();
-        cj('#projectintake_anamonreport_'+caseId+'_hide').show();
-        cj('#projectintake_anamonreport'+caseId+'_show').hide();
-        cj('#minusprojectintake_anamonreport'+caseId+'_hide').show();
+        cj('#my-projectintake-report-casedetails-'+ caseId).show();
+        cj('#my-projectintake-report-'+caseId+'_hide').show();
+        cj('#my-projectintake-report-'+caseId+'_show').hide();
+        cj('#minus-my-projectintake-report-'+caseId+'_hide').show();
     }
 
     function hideCaseActivities( caseId) {
-        cj('#projectintake_anamon-report-casedetails-'+ caseId).hide();
-        cj('#projectintake_anamonreport_'+caseId+'_hide').hide();
-        cj('#projectintake_anamonreport'+caseId+'_show').show();
-        cj('#minusprojectintake_anamonreport'+caseId+'_hide').hide();
+        cj('#my-projectintake-report-casedetails-'+ caseId).hide();
+        cj('#my-projectintake-report-'+caseId+'_hide').hide();
+        cj('#my-projectintake-report-'+caseId+'_show').show();
+        cj('#minus-my-projectintake-report-'+caseId+'_hide').hide();
     }
 
 </script>
