@@ -212,7 +212,7 @@ class CRM_Civireports_Form_Report_MyProjectIntake extends CRM_Report_Form {
             break;
           case "cvanamon":
             $this->approveAnamonTable = $customGroup['table_name'];
-            $customField = CRM_Threepeas_Utils::getCustomField($customGroup['id'], "Do_you_approve_the_Customer_");
+            $customField = CRM_Threepeas_Utils::getCustomField($customGroup['id'], "Do_you_approve_the_project_");
             if (!empty($customField)) {
               $this->approveAnamonColumn = $customField['column_name'];
             }
@@ -347,18 +347,21 @@ class CRM_Civireports_Form_Report_MyProjectIntake extends CRM_Report_Form {
    */
   private function setDateSubmissionClause() {
     $dateSubmissionClauses = array();
-    $relative = $this->_params['date_submission_relative'];
-    $from = $this->_params['date_submission_from'];
-    $to = $this->_params['date_submission_to'];
-    if (in_array($relative, array_keys($this->getOperationPair(CRM_Report_Form::OP_DATE)))) {
-      $sqlOP = $this->getSQLOperator($relative);
+    if (!empty($this->_params['date_submission_relative'])) {
+      $relative = $this->_params['date_submission_relative'];
+      $from = $this->_params['date_submission_from'];
+      $to = $this->_params['date_submission_to'];
+      if (in_array($relative, array_keys($this->getOperationPair(CRM_Report_Form::OP_DATE)))) {
+        $sqlOP = $this->getSQLOperator($relative);
+      }
+      list($from, $to) = $this->getFromTo($relative, $from, $to, NULL, NULL);
+      $from = substr($from, 0, 8);
+      $dateSubmissionClauses[] = "(piopen.activity_date_time >= $from)";
+      $to = substr($to, 0, 8);
+      $dateSubmissionClauses[] = "(piopen.activity_date_time <= $to)";
+      return " AND " . implode(" AND ", $dateSubmissionClauses);
     }
-    list($from, $to) = $this->getFromTo($relative, $from, $to, NULL, NULL);
-    $from = substr($from, 0, 8);
-    $dateSubmissionClauses[] = "(piopen.activity_date_time >= $from)";
-    $to = substr($to, 0, 8);
-    $dateSubmissionClauses[] = "(piopen.activity_date_time <= $to)";
-    return " AND ".implode(" AND ", $dateSubmissionClauses);
+    return "";
   }
 
   function modifyColumnHeaders() {
@@ -371,13 +374,13 @@ class CRM_Civireports_Form_Report_MyProjectIntake extends CRM_Report_Form {
     $this->_columnHeaders['date_submission'] = array('title' => ts("Date Submission"), 'type' => CRM_Utils_Type::T_DATE);
     $this->_columnHeaders['rep_name'] = array('title' => ts("Representative"), 'type' => CRM_Utils_Type::T_STRING);
     $this->_columnHeaders['ass_date'] = array('title' => ts("Date Assessment Rep"), 'type' => CRM_Utils_Type::T_DATE);
-    $this->_columnHeaders['approve_rep'] = array('title' => ts("Customer Approve Rep"), 'type' => CRM_Utils_Type::T_STRING);
+    $this->_columnHeaders['approve_rep'] = array('title' => ts("Customer Approved Rep"), 'type' => CRM_Utils_Type::T_STRING);
     $this->_columnHeaders['incc_date'] = array('title' => ts("Date Intake CC"), 'type' => CRM_Utils_Type::T_DATE);
-    $this->_columnHeaders['approve_cc'] = array('title' => ts("Customer Approve by CC"), 'type' => CRM_Utils_Type::T_STRING);
+    $this->_columnHeaders['approve_cc'] = array('title' => ts("Customer Approved by CC"), 'type' => CRM_Utils_Type::T_STRING);
     $this->_columnHeaders['insc_date'] = array('title' => ts("Date Intake SC"), 'type' => CRM_Utils_Type::T_DATE);
-    $this->_columnHeaders['approve_sc'] = array('title' => ts("Customer Approve by SC"), 'type' => CRM_Utils_Type::T_STRING);
+    $this->_columnHeaders['approve_sc'] = array('title' => ts("Customer Approved by SC"), 'type' => CRM_Utils_Type::T_STRING);
     $this->_columnHeaders['inanamon_date'] = array('title' => ts("Date Intake Anamon"), 'type' => CRM_Utils_Type::T_DATE);
-    $this->_columnHeaders['approve_anamon'] = array('title' => ts("Customer Approve by Anamon"), 'type' => CRM_Utils_Type::T_STRING);
+    $this->_columnHeaders['approve_anamon'] = array('title' => ts("Customer Approved by Anamon"), 'type' => CRM_Utils_Type::T_STRING);
     $this->_columnHeaders['manage_case'] = array('title' => '','type' => CRM_Utils_Type::T_STRING);
   }
 
@@ -537,6 +540,11 @@ class CRM_Civireports_Form_Report_MyProjectIntake extends CRM_Report_Form {
    */
   function buildRows($sql, &$rows) {
     $rows = array();
+
+    //CRM_Core_Error::debug('sql', $sql);
+    //exit();
+
+
     $dao = CRM_Core_DAO::executeQuery($sql);
     $this->modifyColumnHeaders();
     while ($dao->fetch()) {
@@ -573,6 +581,7 @@ class CRM_Civireports_Form_Report_MyProjectIntake extends CRM_Report_Form {
     }
     return FALSE;
   }
+
   /**
    * Overridden parent method to set the found rows on distinct case_id
    */
