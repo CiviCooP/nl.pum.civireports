@@ -374,7 +374,7 @@ class CRM_Civireports_Form_Report_MyProjectIntake extends CRM_Report_Form {
     $this->_columnHeaders['date_submission'] = array('title' => ts("Date Submission"), 'type' => CRM_Utils_Type::T_DATE);
     $this->_columnHeaders['rep_name'] = array('title' => ts("Representative"), 'type' => CRM_Utils_Type::T_STRING);
     $this->_columnHeaders['ass_date'] = array('title' => ts("Date Assessment Rep"), 'type' => CRM_Utils_Type::T_DATE);
-    $this->_columnHeaders['approve_rep'] = array('title' => ts("Customer Approved Rep"), 'type' => CRM_Utils_Type::T_STRING);
+    $this->_columnHeaders['approve_rep'] = array('title' => ts("Customer Approved by Rep"), 'type' => CRM_Utils_Type::T_STRING);
     $this->_columnHeaders['incc_date'] = array('title' => ts("Date Intake CC"), 'type' => CRM_Utils_Type::T_DATE);
     $this->_columnHeaders['approve_cc'] = array('title' => ts("Customer Approved by CC"), 'type' => CRM_Utils_Type::T_STRING);
     $this->_columnHeaders['insc_date'] = array('title' => ts("Date Intake SC"), 'type' => CRM_Utils_Type::T_DATE);
@@ -540,10 +540,6 @@ class CRM_Civireports_Form_Report_MyProjectIntake extends CRM_Report_Form {
    */
   function buildRows($sql, &$rows) {
     $rows = array();
-
-    //CRM_Core_Error::debug('sql', $sql);
-    //exit();
-
 
     $dao = CRM_Core_DAO::executeQuery($sql);
     $this->modifyColumnHeaders();
