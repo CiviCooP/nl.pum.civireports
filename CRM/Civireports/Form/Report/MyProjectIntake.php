@@ -63,7 +63,7 @@ class CRM_Civireports_Form_Report_MyProjectIntake extends CRM_Report_Form {
         'filters' => array(
           'user_id' => array(
             'title' => ts('Project Intake for user'),
-            'default' => 1,
+            'default' => 0,
             'pseudofield' => 1,
             'type' => CRM_Utils_Type::T_INT,
             'operatorType' => CRM_Report_Form::OP_SELECT,
@@ -351,15 +351,13 @@ class CRM_Civireports_Form_Report_MyProjectIntake extends CRM_Report_Form {
       $relative = $this->_params['date_submission_relative'];
       $from = $this->_params['date_submission_from'];
       $to = $this->_params['date_submission_to'];
-      if (in_array($relative, array_keys($this->getOperationPair(CRM_Report_Form::OP_DATE)))) {
-        $sqlOP = $this->getSQLOperator($relative);
-      }
       list($from, $to) = $this->getFromTo($relative, $from, $to, NULL, NULL);
       $from = substr($from, 0, 8);
       $dateSubmissionClauses[] = "(piopen.activity_date_time >= $from)";
       $to = substr($to, 0, 8);
       $dateSubmissionClauses[] = "(piopen.activity_date_time <= $to)";
-      return " AND " . implode(" AND ", $dateSubmissionClauses);
+      $dateSubmissionClause = " AND (" . implode(" AND ", $dateSubmissionClauses)." OR piopen.activity_date_time IS NULL)";
+      return $dateSubmissionClause;
     }
     return "";
   }
@@ -540,7 +538,6 @@ class CRM_Civireports_Form_Report_MyProjectIntake extends CRM_Report_Form {
    */
   function buildRows($sql, &$rows) {
     $rows = array();
-
     $dao = CRM_Core_DAO::executeQuery($sql);
     $this->modifyColumnHeaders();
     while ($dao->fetch()) {
