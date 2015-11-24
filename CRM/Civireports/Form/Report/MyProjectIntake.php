@@ -23,6 +23,7 @@ class CRM_Civireports_Form_Report_MyProjectIntake extends CRM_Report_Form {
   protected $approveScColumn = NULL;
   protected $repRelationshiptypeId = NULL;
   protected $ccRelationshipTypeId = NULL;
+  protected $counsRelationshipTypeId = NULL;
   protected $scRelationshipTypeId = NULL;
   protected $poRelationshipTypeId = NULL;
   protected $openCaseActivityTypeId = NULL;
@@ -267,7 +268,7 @@ class CRM_Civireports_Form_Report_MyProjectIntake extends CRM_Report_Form {
       LEFT JOIN {$this->approveCcTable} cvcc ON cvcc.entity_id = incc.id
       LEFT JOIN {$this->approveScTable} cvsc ON cvsc.entity_id = insc.id
       LEFT JOIN civicrm_relationship mypi ON {$this->_aliases['civicrm_case']}.id = mypi.case_id AND mypi.relationship_type_id IN (
-      {$this->ccRelationshipTypeId}, {$this->scRelationshipTypeId}, {$this->poRelationshipTypeId})";
+      {$this->ccRelationshipTypeId}, {$this->scRelationshipTypeId}, {$this->poRelationshipTypeId}, {$this->counsRelationshipTypeId})";
   }
 
   function where() {
@@ -436,6 +437,7 @@ class CRM_Civireports_Form_Report_MyProjectIntake extends CRM_Report_Form {
     $config = CRM_Threepeas_CaseRelationConfig::singleton();
     $this->repRelationshiptypeId = $config->getRelationshipTypeId("representative");
     $this->ccRelationshipTypeId = $config->getRelationshipTypeId("country_coordinator");
+    $this->counsRelationshipTypeId = $config->getRelationshipTypeId("counsellor");
     $this->scRelationshipTypeId = $config->getRelationshipTypeId("sector_coordinator");
     $this->poRelationshipTypeId = $config->getRelationshipTypeId("project_officer");
   }
