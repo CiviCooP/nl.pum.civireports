@@ -14,9 +14,6 @@ class CRM_Civireports_Form_Report_MyProjectIntake extends CRM_Report_Form {
 
   protected $userSelect = array();
   protected $approveRepTable = NULL;
-  protected $approveAnamonTable = NULL;
-  protected $approveCcTable = NULL;
-  protected $approveScTable = NULL;
   protected $approveRepColumn = NULL;
   protected $approveAnamonColumn = NULL;
   protected $approveCcColumn = NULL;
@@ -175,14 +172,6 @@ class CRM_Civireports_Form_Report_MyProjectIntake extends CRM_Report_Form {
       "piopen.activity_date_time AS date_submission",
       "pirep.display_name AS rep_name",
       "pirep.id AS rep_id",
-      "ass.activity_date_time AS ass_date",
-      "incc.activity_date_time AS incc_date",
-      "insc.activity_date_time AS insc_date",
-      "inanamon.activity_date_time AS inanamon_date",
-      "cvrep.".$this->approveRepColumn." AS approve_rep",
-      "cvanamon.".$this->approveAnamonColumn." AS approve_anamon",
-      "cvsc.".$this->approveScColumn." AS approve_sc",
-      "cvcc.".$this->approveCcColumn." AS approve_cc"
       );
     foreach ($addSelects as $addSelect) {
       $selectClauses[] = $addSelect;
@@ -253,20 +242,8 @@ class CRM_Civireports_Form_Report_MyProjectIntake extends CRM_Report_Form {
       LEFT JOIN civicrm_address piadr ON piadr.contact_id = {$this->_aliases['civicrm_contact']}.id AND is_primary = 1
       LEFT JOIN civicrm_country {$this->_aliases['civicrm_country']} ON piadr.country_id = {$this->_aliases['civicrm_country']}.id
       LEFT JOIN civicrm_case_activity pica ON pica.case_id = {$this->_aliases['civicrm_case']}.id
-      LEFT JOIN civicrm_activity piopen ON pica.activity_id = piopen.id AND piopen.activity_type_id = {$this->openCaseActivityTypeId}
+      JOIN civicrm_activity piopen ON pica.activity_id = piopen.id AND piopen.activity_type_id = {$this->openCaseActivityTypeId}
         AND piopen.is_current_revision = 1
-      LEFT JOIN civicrm_activity ass ON pica.activity_id = ass.id AND ass.activity_type_id = {$this->assessRepActivityTypeId}
-        AND ass.is_current_revision = 1
-      LEFT JOIN civicrm_activity incc ON pica.activity_id = incc.id AND incc.activity_type_id = {$this->approveCcActivityTypeId}
-        AND incc.is_current_revision = 1
-      LEFT JOIN civicrm_activity insc ON pica.activity_id = insc.id AND insc.activity_type_id = {$this->approveScActivityTypeId}
-        AND insc.is_current_revision = 1
-      LEFT JOIN civicrm_activity inanamon ON pica.activity_id = inanamon.id AND inanamon.activity_type_id = {$this->approveAnamonActivityTypeId}
-        AND inanamon.is_current_revision = 1
-      LEFT JOIN {$this->approveRepTable} cvrep ON cvrep.entity_id = {$this->_aliases['civicrm_case']}.id
-      LEFT JOIN {$this->approveAnamonTable} cvanamon ON cvanamon.entity_id = inanamon.id
-      LEFT JOIN {$this->approveCcTable} cvcc ON cvcc.entity_id = incc.id
-      LEFT JOIN {$this->approveScTable} cvsc ON cvsc.entity_id = insc.id
       LEFT JOIN civicrm_relationship mypi ON {$this->_aliases['civicrm_case']}.id = mypi.case_id AND mypi.relationship_type_id IN (
       {$this->ccRelationshipTypeId}, {$this->scRelationshipTypeId}, {$this->poRelationshipTypeId}, {$this->counsRelationshipTypeId})";
   }
@@ -541,40 +518,22 @@ class CRM_Civireports_Form_Report_MyProjectIntake extends CRM_Report_Form {
   function buildRows($sql, &$rows) {
     $rows = array();
     $dao = CRM_Core_DAO::executeQuery($sql);
+
     $this->modifyColumnHeaders();
     while ($dao->fetch()) {
-      //only add to rows if there is no row yet for the case
-      if ($this->rowExists($dao->case_id, $rows) == FALSE) {
-        $row = array();
-        foreach ($this->_columnHeaders as $key => $value) {
-          if (property_exists($dao, $key)) {
-            $row[$key] = $dao->$key;
-          }
+      $row = array();
+      foreach ($this->_columnHeaders as $key => $value) {
+        if (property_exists($dao, $key)) {
+          $row[$key] = $dao->$key;
         }
-        // add specific id's so they can be used to click on the customer name, case subject and rep name
-        $row['case_id'] = $dao->case_id;
-        $row['customer_id'] = $dao->customer_contact_id;
-        $row['rep_id'] = $dao->rep_id;
-        $rows[] = $row;
-      } else {
-        $this->updateRow($dao, $rows);
       }
+      // add specific id's so they can be used to click on the customer name, case subject and rep name
+      $row['case_id'] = $dao->case_id;
+      $row['customer_id'] = $dao->customer_contact_id;
+      $row['rep_id'] = $dao->rep_id;
+      $this->updateRowWithActivities($row);
+      $rows[] = $row;
     }
-  }
-
-  /**
-   * Method if row already exists for caseId
-   * @param int $caseId
-   * @param array $rows
-   * @return bool
-   */
-  private function rowExists($caseId, $rows) {
-    foreach ($rows as $row) {
-      if ($row['case_id'] == $caseId) {
-        return TRUE;
-      }
-    }
-    return FALSE;
   }
 
   /**
@@ -626,40 +585,41 @@ class CRM_Civireports_Form_Report_MyProjectIntake extends CRM_Report_Form {
   /**
    * Method to update row if any of the date or approve columns is set
    *
-   * @param object $dao
-   * @param array $rows
+   * @param array $row
    */
-  private function updateRow($dao, &$rows) {
-    foreach ($rows as $rowNum => $row) {
-      if ($row['case_id'] == $dao->case_id) {
-        if (empty($row['date_submission']) && !empty($dao->date_subission)) {
-          $rows[$rowNum]['date_submission'] = $dao->date_submission;
-        }
-        if (empty($row['ass_date']) && !empty($dao->ass_date)) {
-          $rows[$rowNum]['ass_date'] = $dao->ass_date;
-        }
-        if (empty($row['incc_date']) && !empty($dao->incc_date)) {
-          $rows[$rowNum]['incc_date'] = $dao->incc_date;
-        }
-        if (empty($row['insc_date']) && !empty($dao->insc_date)) {
-          $rows[$rowNum]['insc_date'] = $dao->insc_date;
-        }
-        if (empty($row['inanamon_date']) && !empty($dao->inanamon_date)) {
-          $rows[$rowNum]['inanamon_date'] = $dao->inanamon_date;
-        }
-        if (empty($row['approve_rep']) && !empty($dao->approve_rep)) {
-          $rows[$rowNum]['approve_rep'] = $dao->approve_rep;
-        }
-        if (empty($row['approve_cc']) && !empty($dao->approve_cc)) {
-          $rows[$rowNum]['approve_cc'] = $dao->approve_cc;
-        }
-        if (empty($row['approve_sc']) && !empty($dao->approve_sc)) {
-          $rows[$rowNum]['approve_sc'] = $dao->approve_sc;
-        }
-        if (empty($row['approve_anamon']) && !empty($dao->approve_anamon)) {
-          $rows[$rowNum]['approve_anamon'] = $dao->approve_anamon;
+  private function updateRowWithActivities(&$row) {
+    $validActivityTypes = array($this->approveAnamonActivityTypeId, $this->approveCcActivityTypeId,
+      $this->approveScActivityTypeId, $this->assessRepActivityTypeId);
+    $fetchedCaseActivities = civicrm_api3('CaseActivity', 'Get', array('case_id' => $row['case_id']));
+    foreach ($fetchedCaseActivities['values'] as $caseActivityId => $caseActivity) {
+      if (in_array($caseActivity['activity_type_id'], $validActivityTypes)) {
+        switch ($caseActivity['activity_type_id']) {
+          case $this->assessRepActivityTypeId:
+            $row['ass_date'] = $caseActivity['activity_date_time'];
+            $row['approve_rep'] = $this->getApproveRep($row['case_id']);
+            break;
+          case $this->approveAnamonActivityTypeId:
+            $row['inanamon_date'] = $caseActivity['activity_date_time'];
+            $row['approve_anamon'] = $caseActivity[$this->approveAnamonColumn];
+            break;
+          case $this->approveCcActivityTypeId:
+            $row['incc_date'] = $caseActivity['activity_date_time'];
+            $row['approve_cc'] = $caseActivity[$this->approveCcColumn];
+            break;
+          case $this->approveScActivityTypeId:
+            $row['insc_date'] = $caseActivity['activity_date_time'];
+            $row['approve_sc'] = $caseActivity[$this->approveScColumn];
+            break;
         }
       }
     }
+  }
+  private function getApproveRep($caseId) {
+    if (!empty($caseId)) {
+      $qry = "SELECT " . $this->approveRepColumn . " FROM " . $this->approveRepTable . " WHERE entity_id = %1";
+      $params = array(1 => array($caseId, 'Integer'));
+      return CRM_Core_DAO::singleValueQuery($qry, $params);
+    }
+    return NULL;
   }
 }
