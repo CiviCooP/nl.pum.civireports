@@ -414,7 +414,7 @@ class CRM_Civireports_Form_Report_MyProjectIntake extends CRM_Report_Form {
     $config = CRM_Threepeas_CaseRelationConfig::singleton();
     $this->repRelationshiptypeId = $config->getRelationshipTypeId("representative");
     $this->ccRelationshipTypeId = $config->getRelationshipTypeId("country_coordinator");
-    $this->counsRelationshipTypeId = $config->getRelationshipTypeId("counsellor");
+    $this->counsRelationshipTypeId = $config->getCounsellorRelationshipTypeId();
     $this->scRelationshipTypeId = $config->getRelationshipTypeId("sector_coordinator");
     $this->poRelationshipTypeId = $config->getRelationshipTypeId("project_officer");
   }
