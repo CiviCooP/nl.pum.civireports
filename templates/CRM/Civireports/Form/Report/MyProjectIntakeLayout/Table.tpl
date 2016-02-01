@@ -101,12 +101,12 @@
                         <span id="my-projectintake-report-{$row.case_id}_show">
                             <a href="#" onclick="
                                     myProjectIntakeReportCaseDetails('{$row.case_id}','{$row.customer_id}');
-                                    showCaseActivities('{$row.case_id}');
+                                    showProjectIntakeCaseActivities('{$row.case_id}');
                                     return false;"
                                     ><img src="{$config->resourceBase}i/TreePlus.gif" class="action-icon" alt="{ts}open section{/ts}"/></a>
                         </span>
                         <span id="minus-my-projectintake-report-{$row.case_id}_hide" style="display: none;">
-                            <a href="#" onclick="hideCaseActivities('{$row.case_id}'); return false;">
+                            <a href="#" onclick="hideProjectIntakeCaseActivities('{$row.case_id}'); return false;">
                                 <img src="{$config->resourceBase}i/TreeMinus.gif" class="action-icon" alt="{ts}open section{/ts}"/>
                             </a>
                         </span>
@@ -206,14 +206,14 @@
         });
     }
 
-    function showCaseActivities( caseId) {
+    function showProjectIntakeCaseActivities( caseId) {
         cj('#my-projectintake-report-casedetails-'+ caseId).show();
         cj('#my-projectintake-report-'+caseId+'_hide').show();
         cj('#my-projectintake-report-'+caseId+'_show').hide();
         cj('#minus-my-projectintake-report-'+caseId+'_hide').show();
     }
 
-    function hideCaseActivities( caseId) {
+    function hideProjectIntakeCaseActivities( caseId) {
         cj('#my-projectintake-report-casedetails-'+ caseId).hide();
         cj('#my-projectintake-report-'+caseId+'_hide').hide();
         cj('#my-projectintake-report-'+caseId+'_show').show();
