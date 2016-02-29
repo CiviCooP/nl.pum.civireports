@@ -344,8 +344,12 @@ class CRM_Civireports_Form_Report_MyProjectIntake extends CRM_Report_Form {
 
   function modifyColumnHeaders() {
     $this->_columnHeaders['customer_display_name'] = array('title' => ts("Client"), 'type' => CRM_Utils_Type::T_STRING);
-    $this->_columnHeaders['country_name'] = array('title' => ts("Country"), 'type' => CRM_Utils_Type::T_STRING);
-    $this->_columnHeaders['case_subject'] = array('title' => ts("Case Subject"), 'type' => CRM_Utils_Type::T_STRING);
+    if (isset($this->_params['fields']['country_name'])) {
+      $this->_columnHeaders['country_name'] = array('title' => ts("Country"), 'type' => CRM_Utils_Type::T_STRING);
+    }
+    if (isset($this->_params['fields']['case_subject'])) {
+      $this->_columnHeaders['case_subject'] = array('title' => ts("Case Subject"), 'type' => CRM_Utils_Type::T_STRING);
+    }
     if (isset($this->_params['fields']['case_status_id']) && $this->_params['fields']['case_status_id'] == 1) {
       $this->_columnHeaders['case_status'] = array('title' => ts("Case status"), 'type' => CRM_Utils_Type::T_STRING);
     }
