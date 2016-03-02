@@ -612,11 +612,15 @@ class CRM_Civireports_Form_Report_MyProjectIntake extends CRM_Report_Form {
             break;
           case $this->approveCcActivityTypeId:
             $row['incc_date'] = $caseActivity['activity_date_time'];
-            $row['approve_cc'] = $caseActivity[$this->approveCcColumn];
+            if (isset($caseActivity[$this->approveCcColumn])) {
+              $row['approve_cc'] = $caseActivity[$this->approveCcColumn];
+            }
             break;
           case $this->approveScActivityTypeId:
             $row['insc_date'] = $caseActivity['activity_date_time'];
-            $row['approve_sc'] = $caseActivity[$this->approveScColumn];
+            if (isset($caseActivity[$this->approveScColumn])) {
+              $row['approve_sc'] = $caseActivity[$this->approveScColumn];
+            }
             break;
         }
       }
