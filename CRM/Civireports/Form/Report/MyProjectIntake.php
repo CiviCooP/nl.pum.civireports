@@ -389,25 +389,14 @@ class CRM_Civireports_Form_Report_MyProjectIntake extends CRM_Report_Form {
    * Method to get the country coordinators, sector coordinators and project officers
    */
   protected function setUserSelect() {
-    $ccContacts = CRM_Threepeas_BAO_PumCaseRelation::getAllActiveRelationContacts('country_coordinator');
-    $profContacts = CRM_Threepeas_BAO_PumCaseRelation::getAllActiveRelationContacts('project_officer');
-    $sectorContacts = CRM_Threepeas_BAO_PumCaseRelation::getAllSectorCoordinators();
-    $threepeasConfig = CRM_Threepeas_Config::singleton();
-    $projectManagers = array();
-    $pmContacts = array();
-    $groupContactParams = array('group_id' => $threepeasConfig->projectmanagerGroupId);
-    try {
-      $projectManagers = civicrm_api3('GroupContact', 'Get', $groupContactParams);
-    } catch (CiviCRM_API3_Exception $ex) {
-    }
-    foreach ($projectManagers['values'] as $projectManager) {
-      $pmContacts[$projectManager['contact_id']] = $projectManager['contact_id'];
-    }
-    $allContacts = $ccContacts + $profContacts + $sectorContacts + $pmContacts;
-    ksort($allContacts);
-    $this->userSelect[0] = 'current user';
-    foreach ($allContacts as $contact) {
-      $this->userSelect[$contact] = CRM_Threepeas_Utils::getContactName($contact);
+    if (method_exists('CRM_Groupsforreports_GroupReport', 'getGroupMembersForReport')) {
+      $allContacts = CRM_Groupsforreports_GroupReport::getGroupMembersForReport(__CLASS__);
+      $sortedContacts = array();
+      foreach ($allContacts as $contact) {
+        $sortedContacts[$contact] = CRM_Threepeas_Utils::getContactName($contact);
+      }
+      asort($sortedContacts);
+      $this->userSelect = array(0 => 'current user') + $sortedContacts;
     }
   }
 
