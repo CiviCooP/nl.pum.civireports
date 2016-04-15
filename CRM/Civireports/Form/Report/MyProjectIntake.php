@@ -22,6 +22,7 @@ class CRM_Civireports_Form_Report_MyProjectIntake extends CRM_Report_Form {
   protected $ccRelationshipTypeId = NULL;
   protected $counsRelationshipTypeId = NULL;
   protected $scRelationshipTypeId = NULL;
+  protected $bcRelationshipTypeId = NULL;
   protected $poRelationshipTypeId = NULL;
   protected $openCaseActivityTypeId = NULL;
   protected $assessRepActivityTypeId = NULL;
@@ -245,7 +246,7 @@ class CRM_Civireports_Form_Report_MyProjectIntake extends CRM_Report_Form {
       JOIN civicrm_activity piopen ON pica.activity_id = piopen.id AND piopen.activity_type_id = {$this->openCaseActivityTypeId}
         AND piopen.is_current_revision = 1
       LEFT JOIN civicrm_relationship mypi ON {$this->_aliases['civicrm_case']}.id = mypi.case_id AND mypi.relationship_type_id IN (
-      {$this->ccRelationshipTypeId}, {$this->scRelationshipTypeId}, {$this->poRelationshipTypeId}, {$this->counsRelationshipTypeId})";
+      {$this->ccRelationshipTypeId}, {$this->scRelationshipTypeId}, {$this->poRelationshipTypeId}, {$this->counsRelationshipTypeId}, {$this->bcRelationshipTypeId})";
   }
 
   function where() {
@@ -409,6 +410,7 @@ class CRM_Civireports_Form_Report_MyProjectIntake extends CRM_Report_Form {
     $this->ccRelationshipTypeId = $config->getRelationshipTypeId("country_coordinator");
     $this->counsRelationshipTypeId = $config->getCounsellorRelationshipTypeId();
     $this->scRelationshipTypeId = $config->getRelationshipTypeId("sector_coordinator");
+    $this->bcRelationshipTypeId = civicrm_api3('RelationshipType', 'Getvalue', array('name_a_b' => 'Business Coordinator', 'return' => 'id'));
     $this->poRelationshipTypeId = $config->getRelationshipTypeId("project_officer");
   }
 
