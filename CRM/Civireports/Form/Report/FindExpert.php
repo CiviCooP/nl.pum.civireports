@@ -30,10 +30,14 @@ class CRM_Civireports_Form_Report_FindExpert extends CRM_Report_Form {
   
   protected $_expertRelationshipTypeId = NULL;
 
+  protected $_sectorValues = array();
+
   function __construct() {
     $this->_autoIncludeIndexedFieldsAsOrderBys = FALSE;
     $this->_customGroupFilters = TRUE;
     $this->setExpertRelationshipTypeId('Expert');
+    $sectorList = CRM_Contactsegment_Utils::getParentList();
+    $aoeList = CRM_Contactsegment_Utils::getFullChildList();
     $this->_columns = array(
       'civicrm_contact' =>
       array(
@@ -101,9 +105,42 @@ class CRM_Civireports_Form_Report_FindExpert extends CRM_Report_Form {
           'phone' => NULL,   
         ),
       ),
+      'civicrm_contact_segment' =>
+      array(
+        'dao' => 'CRM_Contactsegment_DAO_ContactSegment',
+        'alias' => 'cs',
+        'grouping' => 'contact_fields',
+        'fields' =>
+        array(
+          'segment_id' =>
+          array(
+            'title' => ts('Segment'),
+            'type' => CRM_Utils_Type::T_STRING,
+            'default' => TRUE
+          )
+        ),
+        'filters' =>
+          array(
+          'sector' =>  array(
+            'name' => 'segment_id',
+            'title' => ts('Sector'),
+            'type' => CRM_Utils_Type::T_INT,
+            'operatorType' => CRM_Report_Form::OP_MULTISELECT,
+            'options' => $sectorList,
+          ),
+          'aoe' =>  array(
+            'name' => 'segment_id',
+            'title' => ts('Areas of Expertise'),
+            'type' => CRM_Utils_Type::T_INT,
+            'operatorType' => CRM_Report_Form::OP_MULTISELECT,
+            'options' => $aoeList,
+          ),
+        )
+      )
     );
 
     $this->_tagFilter = TRUE;
+    $this->_groupFilter = TRUE;
     parent::__construct();
   }
 
@@ -174,6 +211,11 @@ class CRM_Civireports_Form_Report_FindExpert extends CRM_Report_Form {
                    ON {$this->_aliases['civicrm_address']}.country_id = {$this->_aliases['civicrm_country']}.id AND
                       {$this->_aliases['civicrm_address']}.is_primary = 1 ";
     }
+    if ($this->isTableSelected('civicrm_contact_segment')) {
+      $this->_from .= "
+            LEFT JOIN civicrm_contact_segment {$this->_aliases['civicrm_contact_segment']}
+                   ON {$this->_aliases['civicrm_contact']}.id = {$this->_aliases['civicrm_contact_segment']}.contact_id ";
+    }
   }
 
   function postProcess() {
@@ -222,6 +264,7 @@ class CRM_Civireports_Form_Report_FindExpert extends CRM_Report_Form {
       }
     }
   }
+
   /**
    * Local function whereClause to make sure no where clause is ended
    * when option 0 (- select -) is selected
@@ -236,22 +279,20 @@ class CRM_Civireports_Form_Report_FindExpert extends CRM_Report_Form {
         if (($min !== NULL && strlen($min) > 0) ||
           ($max !== NULL && strlen($max) > 0)
         ) {
-          $min     = CRM_Utils_Type::escape($min, $type);
-          $max     = CRM_Utils_Type::escape($max, $type);
+          $min = CRM_Utils_Type::escape($min, $type);
+          $max = CRM_Utils_Type::escape($max, $type);
           $clauses = array();
           if ($min) {
             if ($op == 'bw') {
               $clauses[] = "( {$field['dbAlias']} >= $min )";
-            }
-            else {
+            } else {
               $clauses[] = "( {$field['dbAlias']} < $min )";
             }
           }
           if ($max) {
             if ($op == 'bw') {
               $clauses[] = "( {$field['dbAlias']} <= $max )";
-            }
-            else {
+            } else {
               $clauses[] = "( {$field['dbAlias']} > $max )";
             }
           }
@@ -259,8 +300,7 @@ class CRM_Civireports_Form_Report_FindExpert extends CRM_Report_Form {
           if (!empty($clauses)) {
             if ($op == 'bw') {
               $clause = implode(' AND ', $clauses);
-            }
-            else {
+            } else {
               $clause = implode(' OR ', $clauses);
             }
           }
@@ -273,8 +313,7 @@ class CRM_Civireports_Form_Report_FindExpert extends CRM_Report_Form {
           $value = CRM_Utils_Type::escape($value, $type);
           if (strpos($value, '%') === FALSE) {
             $value = "'%{$value}%'";
-          }
-          else {
+          } else {
             $value = "'{$value}'";
           }
           $sqlOP = $this->getSQLOperator($op);
@@ -291,17 +330,37 @@ class CRM_Civireports_Form_Report_FindExpert extends CRM_Report_Form {
             foreach ($value as $key => $selection) {
               $value[$key] = CRM_Utils_Type::escape($selection, $type);
             }
-            $clause = "( {$field['dbAlias']} $sqlOP ( '" . implode("' , '", $value) . "') )";
-          }
-          else {
-            // for numerical values
-            $clause = "{$field['dbAlias']} $sqlOP (" . implode(', ', $value) . ")";
+            $clause = "{$field['dbAlias']} $sqlOP ('" . implode("' , '", $value) . "')";
+          } else {
+            switch ($field['title']) {
+              case 'Sector':
+                $this->_sectorValues = $value;
+                $clause = "{$field['dbAlias']} $sqlOP (" . implode(', ', $value) . ") AND {$field['alias']}.role_value = 'Expert'";
+                break;
+              case 'Areas of Expertise':
+                //add sector values and remove previous select for sector
+                if (!empty($this->_sectorValues)) {
+                  foreach ($this->_sectorValues as $sectorValue) {
+                    $value[] = $sectorValue;
+                  }
+                  foreach ($this->_whereClauses as $whereClauseId => $whereClause) {
+                    if (substr($whereClause, 0, 25) == '(cs_civireport.segment_id') {
+                      unset($this->_whereClauses[$whereClauseId]);
+                    }
+                  }
+                }
+                $clause = "{$field['dbAlias']} $sqlOP (" . implode(', ', $value) . ") AND {$field['alias']}.role_value = 'Expert'";
+                break;
+              default:
+                // for numerical values
+                $clause = "{$field['dbAlias']} $sqlOP (" . implode(', ', $value) . ")";
+                break;
+            }
           }
           if ($op == 'notin') {
-            $clause = "( " . $clause . " OR {$field['dbAlias']} IS NULL )";
-          }
-          else {
-            $clause = "( " . $clause . " )";
+            $clause = "(" . $clause . " OR {$field['dbAlias']} IS NULL )";
+          } else {
+            $clause = "(" . $clause . " )";
           }
         }
         break;
@@ -321,12 +380,10 @@ class CRM_Civireports_Form_Report_FindExpert extends CRM_Report_Form {
           if (strpos($value, '%') === FALSE) {
             if ($op == 'sw') {
               $value = "'{$value}%'";
-            }
-            else {
+            } else {
               $value = "'%{$value}'";
             }
-          }
-          else {
+          } else {
             $value = "'{$value}'";
           }
           $sqlOP = $this->getSQLOperator($op);
@@ -346,8 +403,7 @@ class CRM_Civireports_Form_Report_FindExpert extends CRM_Report_Form {
             // FIXME: we not doing escape here. Better solution is to use two
             // different types - data-type and filter-type
             $clause = $field['clause'];
-          }
-          else {
+          } else {
             /*
              * hack : if field = gender and value is 0, no clause
              */
@@ -509,37 +565,6 @@ class CRM_Civireports_Form_Report_FindExpert extends CRM_Report_Form {
       $this->_expertRelationshipTypeId = 0;
     }
     return;
-  }
-  /**
-   * Function to build sector filter
-   */
-  function buildTagFilter() {
-    $contactTags = CRM_Core_BAO_Tag::getTags();
-    if (class_exists('CRM_Threepeas_Config')) {
-      $threepeasConfig = CRM_Threepeas_Config::singleton();
-      $sectorTree = $threepeasConfig->getSectorTree();
-      foreach ($contactTags as $contactTagId => $contactTag) {
-        if (!in_array($contactTagId, $sectorTree) || $contactTag == 'Sector') {
-          unset($contactTags[$contactTagId]);
-        }
-      }
-    }
-    if (!empty($contactTags)) {
-      $this->_columns['civicrm_tag'] = array(
-        'dao' => 'CRM_Core_DAO_Tag',
-        'filters' =>
-        array(
-          'tagid' =>
-          array(
-            'name' => 'tag_id',
-            'title' => ts('Sector'),
-            'tag' => TRUE,
-            'operatorType' => CRM_Report_Form::OP_MULTISELECT,
-            'options' => $contactTags,
-          ),
-        ),
-      );
-    }
   }
   function customDataFrom() {
     if (empty($this->_customGroupExtends)) {
@@ -807,5 +832,100 @@ ORDER BY cg.weight, cf.weight";
       }
     }
     return $rowExists;
+  }
+
+  /**
+   * Overridden parent method to build filters, overridden to add advmultiselect for Area of Expertise
+   */
+  function addFilters() {
+    $count = 1;
+    foreach ($this->_filters as $table => $attributes) {
+      foreach ($attributes as $fieldName => $field) {
+        // get ready with option value pair
+        // @ todo being able to specific options for a field (e.g a date field) in the field spec as an array rather than an override
+        // would be useful
+        $operations = $this->getOperationPair(
+          CRM_Utils_Array::value('operatorType', $field),
+          $fieldName);
+
+        $filters[$table][$fieldName] = $field;
+
+        switch (CRM_Utils_Array::value('operatorType', $field)) {
+          case CRM_Report_Form::OP_MONTH:
+            if (!array_key_exists('options', $field) || !is_array($field['options']) || empty($field['options'])) {
+              // If there's no option list for this filter, define one.
+              $field['options'] = array(
+                1 => ts('January'),
+                2 => ts('February'),
+                3 => ts('March'),
+                4 => ts('April'),
+                5 => ts('May'),
+                6 => ts('June'),
+                7 => ts('July'),
+                8 => ts('August'),
+                9 => ts('September'),
+                10 => ts('October'),
+                11 => ts('November'),
+                12 => ts('December'),
+              );
+              // Add this option list to this column _columns. This is
+              // required so that filter statistics show properly.
+              $this->_columns[$table]['filters'][$fieldName]['options'] = $field['options'];
+            }
+          case CRM_Report_Form::OP_MULTISELECT:
+          case CRM_Report_Form::OP_MULTISELECT_SEPARATOR:
+            // assume a multi-select field
+            if (!empty($field['options'])) {
+              $element = $this->addElement('select', "{$fieldName}_op", ts('Operator:'), $operations);
+              if (count($operations) <= 1) {
+                $element->freeze();
+              }
+              $select = $this->addElement('select', "{$fieldName}_value", NULL,
+                $field['options'], array(
+                  'size' => 4,
+                  'style' => 'min-width:250px',
+                )
+              );
+              $select->setMultiple(TRUE);
+            }
+            break;
+
+          case CRM_Report_Form::OP_SELECT:
+            // assume a select field
+            $this->addElement('select', "{$fieldName}_op", ts('Operator:'), $operations);
+            if (!empty($field['options']))
+              $this->addElement('select', "{$fieldName}_value", NULL, $field['options']);
+            break;
+
+          case CRM_Report_Form::OP_DATE:
+            // build datetime fields
+            CRM_Core_Form_Date::buildDateRange($this, $fieldName, $count, '_from', '_to', 'From:', FALSE, $operations);
+            $count++;
+            break;
+
+          case CRM_Report_Form::OP_DATETIME:
+            // build datetime fields
+            CRM_Core_Form_Date::buildDateRange($this, $fieldName, $count, '_from', '_to', 'From:', FALSE, $operations, 'searchDate', true);
+            $count++;
+            break;
+
+          case CRM_Report_Form::OP_INT:
+          case CRM_Report_Form::OP_FLOAT:
+            // and a min value input box
+            $this->add('text', "{$fieldName}_min", ts('Min'));
+            // and a max value input box
+            $this->add('text', "{$fieldName}_max", ts('Max'));
+          default:
+            // default type is string
+            $this->addElement('select', "{$fieldName}_op", ts('Operator:'), $operations,
+              array('onchange' => "return showHideMaxMinVal( '$fieldName', this.value );")
+            );
+            // we need text box for value input
+            $this->add('text', "{$fieldName}_value", NULL);
+            break;
+        }
+      }
+    }
+    $this->assign('filters', $filters);
   }
 }

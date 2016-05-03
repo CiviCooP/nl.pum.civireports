@@ -156,7 +156,9 @@ class CRM_Civireports_Form_Report_MyProjectIntake extends CRM_Report_Form {
   function select() {
     foreach ($this->_columns as $tableName => $tableValues) {
       foreach ($tableValues['fields'] as $fieldName => $fieldValues) {
-        $selectClauses[] = $fieldValues['dbAlias']." AS ".$fieldName;
+        if (isset($this->_params['fields'][$fieldName])) {
+          $selectClauses[] = $fieldValues['dbAlias'] . " AS " . $fieldName;
+        }
       }
     }
     $this->addSelectClauses($selectClauses);
