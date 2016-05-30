@@ -54,12 +54,6 @@ class CRM_Civireports_Form_Report_MyProjectIntake extends CRM_Report_Form {
             'title' => ts('Customer'),
             'required' => TRUE,
           ),
-          'customer_contact_id' => array(
-            'name' => 'id',
-            'no_display' => TRUE,
-            'required' => TRUE,
-            'default' => TRUE
-          ),
         ),
         'filters' => array(
           'user_id' => array(
@@ -161,6 +155,7 @@ class CRM_Civireports_Form_Report_MyProjectIntake extends CRM_Report_Form {
         }
       }
     }
+    $selectClauses[] = 'piclient_civireport.id as customer_contact_id';
     $this->addSelectClauses($selectClauses);
     $this->_select = 'SELECT '.implode(', ', $selectClauses);
   }
